@@ -291,13 +291,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "User Authentication System"
-    - "Product Management APIs"
-    - "Shopping Cart APIs"
-    - "Order Management APIs"
     - "Product Catalog Display"
     - "Shopping Cart Interface"
-    - "Admin Dashboard APIs"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"
