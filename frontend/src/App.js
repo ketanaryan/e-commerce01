@@ -634,31 +634,43 @@ const ProductDetail = ({ product, onClose, onAddToCart }) => {
     }
   };
 
+  const increaseQuantity = () => {
+    if (quantity < product.stock) {
+      setQuantity(quantity + 1);
+    }
+  };
+
+  const decreaseQuantity = () => {
+    if (quantity > 1) {
+      setQuantity(quantity - 1);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[95vh] overflow-y-auto">
+        <div className="p-4 sm:p-6">
           <div className="flex justify-between items-start mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Product Details</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Product Details</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-2xl"
+              className="text-gray-400 hover:text-gray-600 text-2xl p-2 hover:bg-gray-100 rounded-full transition-colors"
             >
               ×
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             <div>
               <img
                 src={product.image_url}
                 alt={product.name}
-                className="w-full h-96 object-cover rounded-lg"
+                className="w-full h-64 sm:h-80 lg:h-96 object-cover rounded-lg"
               />
             </div>
             
-            <div className="space-y-4">
-              <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
+            <div className="space-y-4 sm:space-y-6">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{product.name}</h1>
               
               <div className="flex items-center space-x-2">
                 <div className="flex text-yellow-400">
@@ -667,7 +679,7 @@ const ProductDetail = ({ product, onClose, onAddToCart }) => {
                 <span className="text-sm text-gray-600">(247 reviews)</span>
               </div>
 
-              <div className="text-3xl font-bold text-green-600">
+              <div className="text-2xl sm:text-3xl font-bold text-green-600">
                 ₹{product.price.toLocaleString('en-IN')}
               </div>
 
@@ -683,28 +695,49 @@ const ProductDetail = ({ product, onClose, onAddToCart }) => {
                 ✓ FREE Delivery
               </div>
 
-              <p className="text-gray-700 leading-relaxed">{product.description}</p>
+              <p className="text-gray-700 leading-relaxed text-sm sm:text-base">{product.description}</p>
 
-              <div className="flex items-center space-x-4 pt-4">
-                <div className="flex items-center space-x-2">
-                  <label className="text-sm font-medium text-gray-700">Quantity:</label>
-                  <select
-                    value={quantity}
-                    onChange={(e) => setQuantity(parseInt(e.target.value))}
-                    className="border border-gray-300 rounded px-3 py-1"
-                  >
-                    {[...Array(Math.min(10, product.stock))].map((_, i) => (
-                      <option key={i + 1} value={i + 1}>{i + 1}</option>
-                    ))}
-                  </select>
+              {/* Quantity Selector */}
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-4 sm:space-y-0">
+                  <div className="flex items-center space-x-3">
+                    <label className="text-sm font-medium text-gray-700">Quantity:</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg">
+                      <button
+                        onClick={decreaseQuantity}
+                        disabled={quantity <= 1}
+                        className="flex items-center justify-center w-10 h-10 text-gray-600 hover:text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-l-lg"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                        </svg>
+                      </button>
+                      <span className="flex items-center justify-center w-12 h-10 text-center text-gray-900 bg-gray-50 border-x border-gray-300 font-medium">
+                        {quantity}
+                      </span>
+                      <button
+                        onClick={increaseQuantity}
+                        disabled={quantity >= product.stock}
+                        className="flex items-center justify-center w-10 h-10 text-gray-600 hover:text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-r-lg"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="text-sm text-gray-500">
+                    {quantity > 1 ? `${quantity} items` : '1 item'} • Total: ₹{(product.price * quantity).toLocaleString('en-IN')}
+                  </div>
                 </div>
 
                 <button
                   onClick={handleAddToCart}
                   disabled={loading}
-                  className="flex-1 bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  className="w-full sm:w-auto bg-blue-600 text-white py-3 px-8 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors font-medium"
                 >
-                  {loading ? 'Adding...' : 'Add to Cart'}
+                  {loading ? 'Adding...' : `Add ${quantity} to Cart`}
                 </button>
               </div>
             </div>
