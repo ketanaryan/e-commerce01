@@ -4,7 +4,7 @@ import time
 from typing import Dict, List, Any, Optional
 
 # Get the backend URL from the frontend .env file
-BACKEND_URL = "https://55323021-e347-4415-8524-8998d9e7e8a5.preview.emergentagent.com/api"
+BACKEND_URL = "https://182f2e7f-cfb9-40a1-8cac-19063a8a3ed2.preview.emergentagent.com/api"
 
 # Test credentials
 ADMIN_EMAIL = "admin@shophub.com"
