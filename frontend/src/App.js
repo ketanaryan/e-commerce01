@@ -766,43 +766,46 @@ const ProductCard = ({ product, onAddToCart, onProductClick }) => {
 
   return (
     <div 
-      className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden border border-gray-200 cursor-pointer"
+      className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-gray-200 cursor-pointer group"
       onClick={() => onProductClick(product)}
     >
-      <div className="aspect-w-1 aspect-h-1">
+      <div className="aspect-square relative overflow-hidden">
         <img
           src={product.image_url}
           alt={product.name}
-          className="w-full h-48 object-cover hover:scale-105 transition-transform duration-200"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
         />
+        <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold">
+          {Math.floor(Math.random() * 30 + 10)}% off
+        </div>
       </div>
       
-      <div className="p-4">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+      <div className="p-3 sm:p-4">
+        <h3 className="text-sm sm:text-lg font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
           {product.name}
         </h3>
         
         <div className="flex items-center mb-2">
-          <div className="flex text-yellow-400 text-sm">
+          <div className="flex text-yellow-400 text-xs sm:text-sm">
             {'★'.repeat(4)}{'☆'.repeat(1)}
           </div>
-          <span className="text-sm text-gray-500 ml-2">(247)</span>
+          <span className="text-xs sm:text-sm text-gray-500 ml-2">(247)</span>
         </div>
         
         <div className="mb-3">
-          <div className="text-2xl font-bold text-gray-900">
+          <div className="text-lg sm:text-2xl font-bold text-gray-900">
             ₹{product.price.toLocaleString('en-IN')}
           </div>
-          <div className="text-sm text-green-600 font-medium">FREE Delivery</div>
+          <div className="text-xs sm:text-sm text-green-600 font-medium">FREE Delivery</div>
         </div>
         
-        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{product.description}</p>
+        <p className="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4 line-clamp-2">{product.description}</p>
         
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-sm text-gray-500">
+        <div className="flex items-center justify-between mb-3 sm:mb-4 text-xs sm:text-sm">
+          <div className="text-gray-500 truncate">
             {product.category_name}
           </div>
-          <div className="text-sm text-green-600 font-medium">
+          <div className="text-green-600 font-medium">
             In Stock
           </div>
         </div>
@@ -810,7 +813,7 @@ const ProductCard = ({ product, onAddToCart, onProductClick }) => {
         <button
           onClick={handleAddToCart}
           disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50 text-sm sm:text-base"
         >
           {loading ? 'Adding...' : 'Add to Cart'}
         </button>
