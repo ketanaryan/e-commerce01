@@ -261,6 +261,7 @@ const Header = ({ onPageChange, currentPage }) => {
   const { user, logout } = useAuth();
   const { getCartItemCount } = useCart();
   const [searchTerm, setSearchTerm] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -277,12 +278,12 @@ const Header = ({ onPageChange, currentPage }) => {
             className="flex items-center cursor-pointer"
             onClick={() => onPageChange('home')}
           >
-            <div className="text-2xl font-bold text-gray-900">ShopHub</div>
+            <div className="text-xl sm:text-2xl font-bold text-gray-900">ShopHub</div>
           </div>
 
-          {/* Search bar */}
-          <form onSubmit={handleSearch} className="flex-1 max-w-2xl mx-8">
-            <div className="relative">
+          {/* Search bar - Hidden on mobile, shown on tablet+ */}
+          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-2xl mx-8">
+            <div className="relative w-full">
               <input
                 type="text"
                 placeholder="Search for products..."
@@ -297,7 +298,7 @@ const Header = ({ onPageChange, currentPage }) => {
               </div>
               <button 
                 type="submit"
-                className="absolute inset-y-0 right-0 px-4 py-2 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="absolute inset-y-0 right-0 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               >
                 Search
               </button>
@@ -305,41 +306,44 @@ const Header = ({ onPageChange, currentPage }) => {
           </form>
 
           {/* Right side navigation */}
-          <div className="flex items-center space-x-4">
-            {user ? (
-              <>
-                <div className="text-sm text-gray-700">
-                  Hello, <span className="font-semibold">{user.name}</span>
-                </div>
-                <button
-                  onClick={() => onPageChange('orders')}
-                  className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
-                >
-                  Orders
-                </button>
-                {user.role === 'admin' && (
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            {/* Desktop Menu */}
+            <div className="hidden sm:flex items-center space-x-4">
+              {user ? (
+                <>
+                  <div className="text-sm text-gray-700">
+                    Hello, <span className="font-semibold">{user.name}</span>
+                  </div>
                   <button
-                    onClick={() => onPageChange('admin')}
+                    onClick={() => onPageChange('orders')}
                     className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
                   >
-                    Admin
+                    Orders
                   </button>
-                )}
+                  {user.role === 'admin' && (
+                    <button
+                      onClick={() => onPageChange('admin')}
+                      className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+                    >
+                      Admin
+                    </button>
+                  )}
+                  <button
+                    onClick={logout}
+                    className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-red-600 transition-colors"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
                 <button
-                  onClick={logout}
-                  className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-red-600 transition-colors"
+                  onClick={() => onPageChange('login')}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                 >
-                  Logout
+                  Sign In
                 </button>
-              </>
-            ) : (
-              <button
-                onClick={() => onPageChange('login')}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Sign In
-              </button>
-            )}
+              )}
+            </div>
             
             {/* Cart */}
             <button
@@ -354,6 +358,121 @@ const Header = ({ onPageChange, currentPage }) => {
                   {getCartItemCount()}
                 </span>
               )}
+            </button>
+
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="sm:hidden p-2 text-gray-700 hover:text-blue-600 transition-colors"
+            >
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Search Bar */}
+        <div className="md:hidden pb-4">
+          <form onSubmit={handleSearch} className="relative">
+            <input
+              type="text"
+              placeholder="Search products..."
+              className="w-full px-4 py-2 pl-10 pr-16 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <button 
+              type="submit"
+              className="absolute inset-y-0 right-0 px-3 py-2 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Go
+            </button>
+          </form>
+        </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="sm:hidden border-t border-gray-200 pt-4 pb-4">
+            {user ? (
+              <div className="space-y-2">
+                <div className="text-sm text-gray-700 px-2 py-1">
+                  Hello, <span className="font-semibold">{user.name}</span>
+                </div>
+                <button
+                  onClick={() => {
+                    onPageChange('orders');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="block w-full text-left px-2 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+                >
+                  Orders
+                </button>
+                {user.role === 'admin' && (
+                  <button
+                    onClick={() => {
+                      onPageChange('admin');
+                      setMobileMenuOpen(false);
+                    }}
+                    className="block w-full text-left px-2 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+                  >
+                    Admin
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    logout();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="block w-full text-left px-2 py-2 text-sm font-medium text-gray-700 hover:text-red-600 transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  onPageChange('login');
+                  setMobileMenuOpen(false);
+                }}
+                className="block w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              >
+                Sign In
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Category Navigation */}
+      <div className="bg-gray-50 border-t">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex overflow-x-auto py-3 space-x-4 sm:space-x-6">
+            <button 
+              onClick={() => onPageChange('home')}
+              className="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors whitespace-nowrap"
+            >
+              All Products
+            </button>
+            <button className="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors whitespace-nowrap">
+              Electronics
+            </button>
+            <button className="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors whitespace-nowrap">
+              Fashion
+            </button>
+            <button className="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors whitespace-nowrap">
+              Home & Kitchen
+            </button>
+            <button className="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors whitespace-nowrap">
+              Books
+            </button>
+            <button className="flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors whitespace-nowrap">
+              Sports
             </button>
           </div>
         </div>
