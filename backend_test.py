@@ -907,13 +907,67 @@ class TransportationTests:
     @staticmethod
     def test_create_delivery_route(admin_token: str):
         """Test creating a delivery route (admin only)"""
-        if not TransportationTests.vehicle_id or not TransportationTests.shipment_id:
-            print_test_result("Create Delivery Route (Admin)", False, "No vehicle ID or shipment ID available")
+        if not TransportationTests.vehicle_id:
+            print_test_result("Create Delivery Route (Admin)", False, "No vehicle ID available")
             return False
+        
+        # Create a new shipment for testing
+        # First, get an order ID
+        response = requests.get(
+            f"{BACKEND_URL}/admin/orders",
+            headers=get_headers(admin_token)
+        )
+        
+        if response.status_code != 200 or not response.json():
+            print_test_result("Create Delivery Route (Admin)", False, "No orders available to create test shipment")
+            return False
+        
+        order_id = response.json()[0]["id"]
+        
+        # Get a provider ID
+        response = requests.get(
+            f"{BACKEND_URL}/admin/transportation/providers",
+            headers=get_headers(admin_token)
+        )
+        
+        if response.status_code != 200 or not response.json():
+            print_test_result("Create Delivery Route (Admin)", False, "No providers available to create test shipment")
+            return False
+        
+        provider_id = response.json()[0]["id"]
+        
+        # Create a new shipment
+        response = requests.post(
+            f"{BACKEND_URL}/admin/transportation/shipments",
+            headers=get_headers(admin_token),
+            json={"order_id": order_id, "provider_id": provider_id}
+        )
+        
+        if response.status_code != 200:
+            # If we can't create a new shipment, try to find an existing one that's in pending status
+            response = requests.get(
+                f"{BACKEND_URL}/admin/transportation/shipments",
+                headers=get_headers(admin_token)
+            )
+            
+            if response.status_code == 200:
+                shipments = response.json()
+                pending_shipment = next((s for s in shipments if s["status"] == "pending"), None)
+                
+                if pending_shipment:
+                    shipment_id = pending_shipment["id"]
+                else:
+                    print_test_result("Create Delivery Route (Admin)", False, "No pending shipments available for route creation")
+                    return False
+            else:
+                print_test_result("Create Delivery Route (Admin)", False, "Could not get shipments")
+                return False
+        else:
+            shipment_id = response.json()["id"]
         
         route_data = TransportationTests.TEST_ROUTE.copy()
         route_data["vehicle_id"] = TransportationTests.vehicle_id
-        route_data["shipments"] = [TransportationTests.shipment_id]
+        route_data["shipments"] = [shipment_id]
         
         response = requests.post(
             f"{BACKEND_URL}/admin/transportation/routes",
