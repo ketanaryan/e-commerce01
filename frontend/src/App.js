@@ -1156,6 +1156,7 @@ const Cart = ({ onPageChange }) => {
 const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [trackingOrderId, setTrackingOrderId] = useState(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -1218,11 +1219,17 @@ const Orders = () => {
                     <div>
                       <div className="text-sm font-medium text-gray-500">TOTAL</div>
                       <div className="text-sm text-gray-900">₹{order.total_amount.toLocaleString('en-IN')}</div>
+                      {order.transportation_cost && (
+                        <div className="text-xs text-blue-600">
+                          (incl. ₹{order.transportation_cost.toLocaleString('en-IN')} shipping)
+                        </div>
+                      )}
                     </div>
                     <div>
                       <div className="text-sm font-medium text-gray-500">STATUS</div>
                       <div className={`text-sm font-medium ${
-                        order.status === 'completed' ? 'text-green-600' :
+                        order.status === 'delivered' ? 'text-green-600' :
+                        order.status === 'confirmed' ? 'text-blue-600' :
                         order.status === 'pending' ? 'text-yellow-600' :
                         'text-gray-600'
                       }`}>
@@ -1232,6 +1239,12 @@ const Orders = () => {
                     <div>
                       <div className="text-sm font-medium text-gray-500">ORDER ID</div>
                       <div className="text-sm text-gray-900">{order.id.slice(-8)}</div>
+                      <button
+                        onClick={() => setTrackingOrderId(order.id)}
+                        className="text-xs text-blue-600 hover:text-blue-800 mt-1"
+                      >
+                        📍 Track Order
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1258,6 +1271,13 @@ const Orders = () => {
               </div>
             ))}
           </div>
+        )}
+
+        {trackingOrderId && (
+          <OrderTracking
+            orderId={trackingOrderId}
+            onClose={() => setTrackingOrderId(null)}
+          />
         )}
       </div>
     </div>
