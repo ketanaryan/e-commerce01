@@ -593,6 +593,287 @@ async def get_admin_stats(admin_id: str = Depends(get_admin_user)):
         "total_revenue": total_revenue
     }
 
+# Transportation Management Routes
+
+# Transportation Providers
+@app.get("/api/admin/transportation/providers")
+async def get_transportation_providers(admin_id: str = Depends(get_admin_user)):
+    providers = list(transportation_providers_collection.find())
+    return [TransportationProvider(**provider) for provider in providers]
+
+@app.post("/api/admin/transportation/providers")
+async def create_transportation_provider(provider_data: TransportationProviderCreate, admin_id: str = Depends(get_admin_user)):
+    provider_id = str(uuid.uuid4())
+    provider = {
+        "id": provider_id,
+        "name": provider_data.name,
+        "service_type": provider_data.service_type,
+        "base_cost": provider_data.base_cost,
+        "cost_per_km": provider_data.cost_per_km,
+        "estimated_days": provider_data.estimated_days,
+        "service_areas": provider_data.service_areas,
+        "active": True
+    }
+    
+    transportation_providers_collection.insert_one(provider)
+    return TransportationProvider(**provider)
+
+@app.put("/api/admin/transportation/providers/{provider_id}")
+async def update_transportation_provider(provider_id: str, provider_data: TransportationProviderCreate, admin_id: str = Depends(get_admin_user)):
+    update_data = {
+        "name": provider_data.name,
+        "service_type": provider_data.service_type,
+        "base_cost": provider_data.base_cost,
+        "cost_per_km": provider_data.cost_per_km,
+        "estimated_days": provider_data.estimated_days,
+        "service_areas": provider_data.service_areas
+    }
+    
+    result = transportation_providers_collection.update_one({"id": provider_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Transportation provider not found")
+    
+    provider = transportation_providers_collection.find_one({"id": provider_id})
+    return TransportationProvider(**provider)
+
+@app.delete("/api/admin/transportation/providers/{provider_id}")
+async def delete_transportation_provider(provider_id: str, admin_id: str = Depends(get_admin_user)):
+    result = transportation_providers_collection.update_one(
+        {"id": provider_id}, 
+        {"$set": {"active": False}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Transportation provider not found")
+    return {"message": "Transportation provider deactivated successfully"}
+
+# Vehicles
+@app.get("/api/admin/transportation/vehicles")
+async def get_vehicles(admin_id: str = Depends(get_admin_user)):
+    vehicles = list(vehicles_collection.find())
+    return [Vehicle(**vehicle) for vehicle in vehicles]
+
+@app.post("/api/admin/transportation/vehicles")
+async def create_vehicle(vehicle_data: VehicleCreate, admin_id: str = Depends(get_admin_user)):
+    # Verify provider exists
+    provider = transportation_providers_collection.find_one({"id": vehicle_data.provider_id})
+    if not provider:
+        raise HTTPException(status_code=404, detail="Transportation provider not found")
+    
+    vehicle_id = str(uuid.uuid4())
+    vehicle = {
+        "id": vehicle_id,
+        "provider_id": vehicle_data.provider_id,
+        "vehicle_number": vehicle_data.vehicle_number,
+        "driver_name": vehicle_data.driver_name,
+        "vehicle_type": vehicle_data.vehicle_type,
+        "capacity": vehicle_data.capacity,
+        "current_location": vehicle_data.current_location,
+        "active": True
+    }
+    
+    vehicles_collection.insert_one(vehicle)
+    return Vehicle(**vehicle)
+
+@app.put("/api/admin/transportation/vehicles/{vehicle_id}")
+async def update_vehicle(vehicle_id: str, vehicle_data: VehicleCreate, admin_id: str = Depends(get_admin_user)):
+    update_data = {
+        "provider_id": vehicle_data.provider_id,
+        "vehicle_number": vehicle_data.vehicle_number,
+        "driver_name": vehicle_data.driver_name,
+        "vehicle_type": vehicle_data.vehicle_type,
+        "capacity": vehicle_data.capacity,
+        "current_location": vehicle_data.current_location
+    }
+    
+    result = vehicles_collection.update_one({"id": vehicle_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    
+    vehicle = vehicles_collection.find_one({"id": vehicle_id})
+    return Vehicle(**vehicle)
+
+@app.delete("/api/admin/transportation/vehicles/{vehicle_id}")
+async def delete_vehicle(vehicle_id: str, admin_id: str = Depends(get_admin_user)):
+    result = vehicles_collection.update_one(
+        {"id": vehicle_id}, 
+        {"$set": {"active": False}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    return {"message": "Vehicle deactivated successfully"}
+
+# Shipments
+@app.get("/api/admin/transportation/shipments")
+async def get_all_shipments(admin_id: str = Depends(get_admin_user)):
+    shipments = list(shipments_collection.find().sort("created_at", -1))
+    return [Shipment(**shipment) for shipment in shipments]
+
+@app.get("/api/shipments/track/{tracking_number}")
+async def track_shipment(tracking_number: str):
+    shipment = shipments_collection.find_one({"tracking_number": tracking_number})
+    if not shipment:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+    
+    # Get additional info
+    order = orders_collection.find_one({"id": shipment["order_id"]})
+    provider = transportation_providers_collection.find_one({"id": shipment["provider_id"]})
+    vehicle = vehicles_collection.find_one({"id": shipment["vehicle_id"]}) if shipment["vehicle_id"] else None
+    
+    result = Shipment(**shipment)
+    
+    return {
+        "shipment": result,
+        "order": Order(**order) if order else None,
+        "provider": TransportationProvider(**provider) if provider else None,
+        "vehicle": Vehicle(**vehicle) if vehicle else None
+    }
+
+@app.get("/api/orders/{order_id}/shipment")
+async def get_order_shipment(order_id: str, user_id: str = Depends(get_current_user)):
+    # Verify order belongs to user
+    order = orders_collection.find_one({"id": order_id, "user_id": user_id})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    shipment = shipments_collection.find_one({"order_id": order_id})
+    if not shipment:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+    
+    # Get additional info
+    provider = transportation_providers_collection.find_one({"id": shipment["provider_id"]})
+    vehicle = vehicles_collection.find_one({"id": shipment["vehicle_id"]}) if shipment["vehicle_id"] else None
+    
+    result = Shipment(**shipment)
+    
+    return {
+        "shipment": result,
+        "provider": TransportationProvider(**provider) if provider else None,
+        "vehicle": Vehicle(**vehicle) if vehicle else None
+    }
+
+@app.put("/api/admin/transportation/shipments/{shipment_id}")
+async def update_shipment_status(shipment_id: str, shipment_update: ShipmentUpdate, admin_id: str = Depends(get_admin_user)):
+    update_data = {
+        "status": shipment_update.status,
+        "delivery_notes": shipment_update.delivery_notes
+    }
+    
+    # If status is delivered, set actual delivery time
+    if shipment_update.status == "delivered":
+        update_data["actual_delivery"] = datetime.utcnow()
+        
+        # Also update the order status
+        shipment = shipments_collection.find_one({"id": shipment_id})
+        if shipment:
+            orders_collection.update_one(
+                {"id": shipment["order_id"]},
+                {"$set": {"status": "delivered"}}
+            )
+    
+    result = shipments_collection.update_one({"id": shipment_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+    
+    shipment = shipments_collection.find_one({"id": shipment_id})
+    return Shipment(**shipment)
+
+# Delivery Routes
+@app.get("/api/admin/transportation/routes")
+async def get_delivery_routes(admin_id: str = Depends(get_admin_user)):
+    routes = list(delivery_routes_collection.find().sort("date", -1))
+    return [DeliveryRoute(**route) for route in routes]
+
+@app.post("/api/admin/transportation/routes")
+async def create_delivery_route(route_data: DeliveryRouteCreate, admin_id: str = Depends(get_admin_user)):
+    # Verify vehicle exists
+    vehicle = vehicles_collection.find_one({"id": route_data.vehicle_id})
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    
+    # Verify all shipments exist and are available
+    for shipment_id in route_data.shipments:
+        shipment = shipments_collection.find_one({"id": shipment_id})
+        if not shipment:
+            raise HTTPException(status_code=404, detail=f"Shipment {shipment_id} not found")
+        if shipment["status"] not in ["pending", "assigned"]:
+            raise HTTPException(status_code=400, detail=f"Shipment {shipment_id} is not available for routing")
+    
+    route_id = str(uuid.uuid4())
+    route = {
+        "id": route_id,
+        "vehicle_id": route_data.vehicle_id,
+        "date": route_data.date,
+        "shipments": route_data.shipments,
+        "route_status": "planned",
+        "total_distance": route_data.total_distance,
+        "estimated_duration": route_data.estimated_duration,
+        "created_at": datetime.utcnow()
+    }
+    
+    delivery_routes_collection.insert_one(route)
+    
+    # Update shipments status to assigned
+    shipments_collection.update_many(
+        {"id": {"$in": route_data.shipments}},
+        {"$set": {"status": "assigned", "vehicle_id": route_data.vehicle_id}}
+    )
+    
+    return DeliveryRoute(**route)
+
+@app.put("/api/admin/transportation/routes/{route_id}")
+async def update_route_status(route_id: str, status: str, admin_id: str = Depends(get_admin_user)):
+    valid_statuses = ["planned", "in_progress", "completed"]
+    if status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
+    
+    result = delivery_routes_collection.update_one(
+        {"id": route_id},
+        {"$set": {"route_status": status}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Delivery route not found")
+    
+    # If route is in progress, update shipments to in_transit
+    if status == "in_progress":
+        route = delivery_routes_collection.find_one({"id": route_id})
+        if route:
+            shipments_collection.update_many(
+                {"id": {"$in": route["shipments"]}},
+                {"$set": {"status": "in_transit"}}
+            )
+    
+    route = delivery_routes_collection.find_one({"id": route_id})
+    return DeliveryRoute(**route)
+
+# Calculate transportation cost for cart preview
+@app.post("/api/cart/transportation-cost")
+async def calculate_cart_transportation_cost(shipping_address: str, user_id: str = Depends(get_current_user)):
+    # Get current cart items
+    cart_items = list(cart_collection.find({"user_id": user_id}))
+    
+    if not cart_items:
+        return {"cost": 0.0, "message": "Cart is empty"}
+    
+    # Convert cart items to order items format for calculation
+    order_items = []
+    for item in cart_items:
+        product = products_collection.find_one({"id": item["product_id"]})
+        if product:
+            order_items.append({
+                "product_id": item["product_id"],
+                "quantity": item["quantity"],
+                "price": product["price"]
+            })
+    
+    transport_info = calculate_transportation_cost(shipping_address, order_items)
+    
+    return {
+        "cost": transport_info["cost"],
+        "provider_name": transport_info["provider_name"],
+        "estimated_days": transport_info["estimated_days"],
+        "distance": transport_info.get("distance", 0)
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
