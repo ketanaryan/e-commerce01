@@ -569,6 +569,443 @@ class AdminTests:
         print_test_result("Role-Based Access Control", success, details)
         return success
 
+class TransportationTests:
+    provider_id = None
+    vehicle_id = None
+    shipment_id = None
+    tracking_number = None
+    route_id = None
+    
+    # Test data
+    TEST_PROVIDER = {
+        "name": f"Test Provider {int(time.time())}",
+        "service_type": "standard",
+        "base_cost": 50.0,
+        "cost_per_km": 2.5,
+        "estimated_days": 3,
+        "service_areas": ["Test City", "Another City"]
+    }
+    
+    TEST_VEHICLE = {
+        "vehicle_number": f"TRK-{int(time.time())}",
+        "driver_name": "Test Driver",
+        "vehicle_type": "van",
+        "capacity": 1000,
+        "current_location": "Test City"
+    }
+    
+    TEST_ROUTE = {
+        "date": (datetime.utcnow() + timedelta(days=1)).isoformat(),
+        "total_distance": 45.5,
+        "estimated_duration": 120  # minutes
+    }
+    
+    @staticmethod
+    def test_create_transportation_provider(admin_token: str):
+        """Test creating a transportation provider (admin only)"""
+        response = requests.post(
+            f"{BACKEND_URL}/admin/transportation/providers",
+            headers=get_headers(admin_token),
+            json=TransportationTests.TEST_PROVIDER
+        )
+        
+        success = response.status_code == 200
+        details = ""
+        
+        if success:
+            data = response.json()
+            TransportationTests.provider_id = data["id"]
+            details = f"Transportation provider created with ID: {TransportationTests.provider_id}"
+        else:
+            details = f"Transportation provider creation failed: {response.status_code} - {response.text}"
+        
+        print_test_result("Create Transportation Provider (Admin)", success, details)
+        return success
+    
+    @staticmethod
+    def test_get_transportation_providers(admin_token: str):
+        """Test getting all transportation providers (admin only)"""
+        response = requests.get(
+            f"{BACKEND_URL}/admin/transportation/providers",
+            headers=get_headers(admin_token)
+        )
+        
+        success = response.status_code == 200
+        details = ""
+        
+        if success:
+            providers = response.json()
+            details = f"Retrieved {len(providers)} transportation providers"
+            
+            # If we don't have a provider ID yet, use the first one from the list
+            if not TransportationTests.provider_id and providers:
+                TransportationTests.provider_id = providers[0]["id"]
+                details += f", using provider ID: {TransportationTests.provider_id}"
+        else:
+            details = f"Get transportation providers failed: {response.status_code} - {response.text}"
+        
+        print_test_result("Get Transportation Providers (Admin)", success, details)
+        return success
+    
+    @staticmethod
+    def test_update_transportation_provider(admin_token: str):
+        """Test updating a transportation provider (admin only)"""
+        if not TransportationTests.provider_id:
+            print_test_result("Update Transportation Provider (Admin)", False, "No provider ID available")
+            return False
+        
+        updated_provider = TransportationTests.TEST_PROVIDER.copy()
+        updated_provider["name"] = f"Updated {TransportationTests.TEST_PROVIDER['name']}"
+        updated_provider["base_cost"] = 60.0
+        
+        response = requests.put(
+            f"{BACKEND_URL}/admin/transportation/providers/{TransportationTests.provider_id}",
+            headers=get_headers(admin_token),
+            json=updated_provider
+        )
+        
+        success = response.status_code == 200
+        details = ""
+        
+        if success:
+            provider = response.json()
+            details = f"Updated provider: {provider['name']} with base cost {provider['base_cost']}"
+        else:
+            details = f"Provider update failed: {response.status_code} - {response.text}"
+        
+        print_test_result("Update Transportation Provider (Admin)", success, details)
+        return success
+    
+    @staticmethod
+    def test_delete_transportation_provider(admin_token: str):
+        """Test deleting (deactivating) a transportation provider (admin only)"""
+        if not TransportationTests.provider_id:
+            print_test_result("Delete Transportation Provider (Admin)", False, "No provider ID available")
+            return False
+        
+        response = requests.delete(
+            f"{BACKEND_URL}/admin/transportation/providers/{TransportationTests.provider_id}",
+            headers=get_headers(admin_token)
+        )
+        
+        success = response.status_code == 200
+        details = ""
+        
+        if success:
+            details = "Transportation provider deactivated successfully"
+        else:
+            details = f"Provider deletion failed: {response.status_code} - {response.text}"
+        
+        print_test_result("Delete Transportation Provider (Admin)", success, details)
+        return success
+    
+    @staticmethod
+    def test_create_vehicle(admin_token: str):
+        """Test creating a vehicle (admin only)"""
+        if not TransportationTests.provider_id:
+            print_test_result("Create Vehicle (Admin)", False, "No provider ID available")
+            return False
+        
+        vehicle_data = TransportationTests.TEST_VEHICLE.copy()
+        vehicle_data["provider_id"] = TransportationTests.provider_id
+        
+        response = requests.post(
+            f"{BACKEND_URL}/admin/transportation/vehicles",
+            headers=get_headers(admin_token),
+            json=vehicle_data
+        )
+        
+        success = response.status_code == 200
+        details = ""
+        
+        if success:
+            data = response.json()
+            TransportationTests.vehicle_id = data["id"]
+            details = f"Vehicle created with ID: {TransportationTests.vehicle_id}"
+        else:
+            details = f"Vehicle creation failed: {response.status_code} - {response.text}"
+        
+        print_test_result("Create Vehicle (Admin)", success, details)
+        return success
+    
+    @staticmethod
+    def test_get_vehicles(admin_token: str):
+        """Test getting all vehicles (admin only)"""
+        response = requests.get(
+            f"{BACKEND_URL}/admin/transportation/vehicles",
+            headers=get_headers(admin_token)
+        )
+        
+        success = response.status_code == 200
+        details = ""
+        
+        if success:
+            vehicles = response.json()
+            details = f"Retrieved {len(vehicles)} vehicles"
+            
+            # If we don't have a vehicle ID yet, use the first one from the list
+            if not TransportationTests.vehicle_id and vehicles:
+                TransportationTests.vehicle_id = vehicles[0]["id"]
+                details += f", using vehicle ID: {TransportationTests.vehicle_id}"
+        else:
+            details = f"Get vehicles failed: {response.status_code} - {response.text}"
+        
+        print_test_result("Get Vehicles (Admin)", success, details)
+        return success
+    
+    @staticmethod
+    def test_update_vehicle(admin_token: str):
+        """Test updating a vehicle (admin only)"""
+        if not TransportationTests.vehicle_id or not TransportationTests.provider_id:
+            print_test_result("Update Vehicle (Admin)", False, "No vehicle ID or provider ID available")
+            return False
+        
+        updated_vehicle = TransportationTests.TEST_VEHICLE.copy()
+        updated_vehicle["provider_id"] = TransportationTests.provider_id
+        updated_vehicle["driver_name"] = f"Updated {TransportationTests.TEST_VEHICLE['driver_name']}"
+        updated_vehicle["current_location"] = "Updated Location"
+        
+        response = requests.put(
+            f"{BACKEND_URL}/admin/transportation/vehicles/{TransportationTests.vehicle_id}",
+            headers=get_headers(admin_token),
+            json=updated_vehicle
+        )
+        
+        success = response.status_code == 200
+        details = ""
+        
+        if success:
+            vehicle = response.json()
+            details = f"Updated vehicle: {vehicle['vehicle_number']} with driver {vehicle['driver_name']}"
+        else:
+            details = f"Vehicle update failed: {response.status_code} - {response.text}"
+        
+        print_test_result("Update Vehicle (Admin)", success, details)
+        return success
+    
+    @staticmethod
+    def test_delete_vehicle(admin_token: str):
+        """Test deleting (deactivating) a vehicle (admin only)"""
+        if not TransportationTests.vehicle_id:
+            print_test_result("Delete Vehicle (Admin)", False, "No vehicle ID available")
+            return False
+        
+        response = requests.delete(
+            f"{BACKEND_URL}/admin/transportation/vehicles/{TransportationTests.vehicle_id}",
+            headers=get_headers(admin_token)
+        )
+        
+        success = response.status_code == 200
+        details = ""
+        
+        if success:
+            details = "Vehicle deactivated successfully"
+        else:
+            details = f"Vehicle deletion failed: {response.status_code} - {response.text}"
+        
+        print_test_result("Delete Vehicle (Admin)", success, details)
+        return success
+    
+    @staticmethod
+    def test_get_shipments(admin_token: str):
+        """Test getting all shipments (admin only)"""
+        response = requests.get(
+            f"{BACKEND_URL}/admin/transportation/shipments",
+            headers=get_headers(admin_token)
+        )
+        
+        success = response.status_code == 200
+        details = ""
+        
+        if success:
+            shipments = response.json()
+            details = f"Retrieved {len(shipments)} shipments"
+            
+            # If we have shipments, save the first one's ID and tracking number for later tests
+            if shipments:
+                TransportationTests.shipment_id = shipments[0]["id"]
+                TransportationTests.tracking_number = shipments[0]["tracking_number"]
+                details += f", using shipment ID: {TransportationTests.shipment_id}"
+        else:
+            details = f"Get shipments failed: {response.status_code} - {response.text}"
+        
+        print_test_result("Get Shipments (Admin)", success, details)
+        return success
+    
+    @staticmethod
+    def test_track_shipment():
+        """Test tracking a shipment by tracking number (public endpoint)"""
+        if not TransportationTests.tracking_number:
+            print_test_result("Track Shipment", False, "No tracking number available")
+            return False
+        
+        response = requests.get(
+            f"{BACKEND_URL}/shipments/track/{TransportationTests.tracking_number}"
+        )
+        
+        success = response.status_code == 200
+        details = ""
+        
+        if success:
+            tracking_info = response.json()
+            details = f"Retrieved tracking info for shipment with status: {tracking_info['shipment']['status']}"
+        else:
+            details = f"Track shipment failed: {response.status_code} - {response.text}"
+        
+        print_test_result("Track Shipment", success, details)
+        return success
+    
+    @staticmethod
+    def test_get_order_shipment(customer_token: str, order_id: str):
+        """Test getting shipment info for a specific order"""
+        if not order_id:
+            print_test_result("Get Order Shipment", False, "No order ID available")
+            return False
+        
+        response = requests.get(
+            f"{BACKEND_URL}/orders/{order_id}/shipment",
+            headers=get_headers(customer_token)
+        )
+        
+        success = response.status_code == 200
+        details = ""
+        
+        if success:
+            shipment_info = response.json()
+            details = f"Retrieved shipment info for order with tracking number: {shipment_info['shipment']['tracking_number']}"
+        else:
+            details = f"Get order shipment failed: {response.status_code} - {response.text}"
+        
+        print_test_result("Get Order Shipment", success, details)
+        return success
+    
+    @staticmethod
+    def test_update_shipment_status(admin_token: str):
+        """Test updating a shipment status (admin only)"""
+        if not TransportationTests.shipment_id:
+            print_test_result("Update Shipment Status (Admin)", False, "No shipment ID available")
+            return False
+        
+        response = requests.put(
+            f"{BACKEND_URL}/admin/transportation/shipments/{TransportationTests.shipment_id}",
+            headers=get_headers(admin_token),
+            json={"status": "in_transit", "delivery_notes": "Test status update"}
+        )
+        
+        success = response.status_code == 200
+        details = ""
+        
+        if success:
+            shipment = response.json()
+            details = f"Updated shipment status to: {shipment['status']}"
+        else:
+            details = f"Shipment status update failed: {response.status_code} - {response.text}"
+        
+        print_test_result("Update Shipment Status (Admin)", success, details)
+        return success
+    
+    @staticmethod
+    def test_create_delivery_route(admin_token: str):
+        """Test creating a delivery route (admin only)"""
+        if not TransportationTests.vehicle_id or not TransportationTests.shipment_id:
+            print_test_result("Create Delivery Route (Admin)", False, "No vehicle ID or shipment ID available")
+            return False
+        
+        route_data = TransportationTests.TEST_ROUTE.copy()
+        route_data["vehicle_id"] = TransportationTests.vehicle_id
+        route_data["shipments"] = [TransportationTests.shipment_id]
+        
+        response = requests.post(
+            f"{BACKEND_URL}/admin/transportation/routes",
+            headers=get_headers(admin_token),
+            json=route_data
+        )
+        
+        success = response.status_code == 200
+        details = ""
+        
+        if success:
+            data = response.json()
+            TransportationTests.route_id = data["id"]
+            details = f"Delivery route created with ID: {TransportationTests.route_id}"
+        else:
+            details = f"Delivery route creation failed: {response.status_code} - {response.text}"
+        
+        print_test_result("Create Delivery Route (Admin)", success, details)
+        return success
+    
+    @staticmethod
+    def test_get_delivery_routes(admin_token: str):
+        """Test getting all delivery routes (admin only)"""
+        response = requests.get(
+            f"{BACKEND_URL}/admin/transportation/routes",
+            headers=get_headers(admin_token)
+        )
+        
+        success = response.status_code == 200
+        details = ""
+        
+        if success:
+            routes = response.json()
+            details = f"Retrieved {len(routes)} delivery routes"
+            
+            # If we don't have a route ID yet, use the first one from the list
+            if not TransportationTests.route_id and routes:
+                TransportationTests.route_id = routes[0]["id"]
+                details += f", using route ID: {TransportationTests.route_id}"
+        else:
+            details = f"Get delivery routes failed: {response.status_code} - {response.text}"
+        
+        print_test_result("Get Delivery Routes (Admin)", success, details)
+        return success
+    
+    @staticmethod
+    def test_update_route_status(admin_token: str):
+        """Test updating a delivery route status (admin only)"""
+        if not TransportationTests.route_id:
+            print_test_result("Update Route Status (Admin)", False, "No route ID available")
+            return False
+        
+        response = requests.put(
+            f"{BACKEND_URL}/admin/transportation/routes/{TransportationTests.route_id}?status=in_progress",
+            headers=get_headers(admin_token)
+        )
+        
+        success = response.status_code == 200
+        details = ""
+        
+        if success:
+            route = response.json()
+            details = f"Updated route status to: {route['route_status']}"
+        else:
+            details = f"Route status update failed: {response.status_code} - {response.text}"
+        
+        print_test_result("Update Route Status (Admin)", success, details)
+        return success
+    
+    @staticmethod
+    def test_calculate_transportation_cost(customer_token: str):
+        """Test calculating transportation cost for cart"""
+        shipping_address = "123 Test Street, Test City, Test Country"
+        
+        response = requests.post(
+            f"{BACKEND_URL}/cart/transportation-cost",
+            headers=get_headers(customer_token),
+            json=shipping_address
+        )
+        
+        success = response.status_code == 200
+        details = ""
+        
+        if success:
+            cost_info = response.json()
+            details = f"Calculated transportation cost: ${cost_info['cost']}, provider: {cost_info['provider_name']}"
+        else:
+            details = f"Transportation cost calculation failed: {response.status_code} - {response.text}"
+        
+        print_test_result("Calculate Transportation Cost", success, details)
+        return success
+
 def run_all_tests():
     print("=" * 80)
     print("STARTING BACKEND API TESTS")
