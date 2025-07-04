@@ -25,6 +25,10 @@ products_collection = db.products
 categories_collection = db.categories
 orders_collection = db.orders
 cart_collection = db.cart
+transportation_providers_collection = db.transportation_providers
+vehicles_collection = db.vehicles
+shipments_collection = db.shipments
+delivery_routes_collection = db.delivery_routes
 
 # FastAPI app
 app = FastAPI()
