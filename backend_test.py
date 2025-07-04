@@ -924,8 +924,6 @@ class TransportationTests:
         # Create a new shipment manually in the database
         import uuid
         from datetime import datetime, timedelta
-        import requests
-        import json
         
         # Get a provider ID
         response = requests.get(
