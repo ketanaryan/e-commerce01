@@ -452,6 +452,148 @@ def seed_database():
     orders_collection.insert_many(sample_orders)
     print(f"✅ Created {len(sample_orders)} sample orders")
     
+    # Create transportation providers
+    print("🚚 Creating transportation providers...")
+    
+    providers_data = [
+        {
+            "id": str(uuid.uuid4()),
+            "name": "SwiftDelivery Express",
+            "service_type": "express",
+            "base_cost": 150.0,
+            "cost_per_km": 5.0,
+            "estimated_days": 1,
+            "service_areas": ["Delhi", "Mumbai", "Bangalore", "Chennai", "Kolkata"],
+            "active": True
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Standard Logistics",
+            "service_type": "standard",
+            "base_cost": 100.0,
+            "cost_per_km": 3.0,
+            "estimated_days": 3,
+            "service_areas": ["All India"],
+            "active": True
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Premium Overnight",
+            "service_type": "overnight",
+            "base_cost": 200.0,
+            "cost_per_km": 7.0,
+            "estimated_days": 1,
+            "service_areas": ["Delhi", "Mumbai", "Bangalore"],
+            "active": True
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "EconoShip",
+            "service_type": "economy",
+            "base_cost": 75.0,
+            "cost_per_km": 2.0,
+            "estimated_days": 5,
+            "service_areas": ["All India"],
+            "active": True
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "LocalDelivery Pro",
+            "service_type": "local",
+            "base_cost": 50.0,
+            "cost_per_km": 1.5,
+            "estimated_days": 1,
+            "service_areas": ["Delhi NCR", "Mumbai Metropolitan", "Bangalore Urban"],
+            "active": True
+        }
+    ]
+    
+    transportation_providers_collection.insert_many(providers_data)
+    print(f"✅ Created {len(providers_data)} transportation providers")
+    
+    # Create vehicles
+    print("🚗 Creating vehicles...")
+    
+    vehicles_data = []
+    vehicle_types = ["truck", "van", "bike"]
+    
+    for i, provider in enumerate(providers_data):
+        for j in range(3):  # 3 vehicles per provider
+            vehicle_type = vehicle_types[j % len(vehicle_types)]
+            capacity = 1000 if vehicle_type == "truck" else 500 if vehicle_type == "van" else 100
+            
+            vehicle = {
+                "id": str(uuid.uuid4()),
+                "provider_id": provider["id"],
+                "vehicle_number": f"{provider['name'][:3].upper()}-{100+j}",
+                "driver_name": f"Driver {i+1}-{j+1}",
+                "vehicle_type": vehicle_type,
+                "capacity": capacity,
+                "current_location": provider["service_areas"][0] if provider["service_areas"][0] != "All India" else "Delhi",
+                "active": True
+            }
+            vehicles_data.append(vehicle)
+    
+    vehicles_collection.insert_many(vehicles_data)
+    print(f"✅ Created {len(vehicles_data)} vehicles")
+    
+    # Create shipments for existing orders
+    print("📦 Creating shipments for orders...")
+    
+    shipments_data = []
+    
+    for i, order in enumerate(sample_orders):
+        provider = providers_data[i % len(providers_data)]
+        vehicle = next((v for v in vehicles_data if v["provider_id"] == provider["id"]), None)
+        
+        shipment = {
+            "id": str(uuid.uuid4()),
+            "order_id": order["id"],
+            "provider_id": provider["id"],
+            "vehicle_id": vehicle["id"] if vehicle else None,
+            "tracking_number": f"TRK{uuid.uuid4().hex[:8].upper()}",
+            "status": "delivered" if order["status"] == "completed" else "pending",
+            "estimated_delivery": datetime.utcnow() + timedelta(days=provider["estimated_days"]),
+            "actual_delivery": datetime.utcnow() if order["status"] == "completed" else None,
+            "delivery_notes": "Delivered on time" if order["status"] == "completed" else "",
+            "created_at": order["created_at"]
+        }
+        
+        # Update order with transportation cost
+        transportation_cost = provider["base_cost"] + (provider["cost_per_km"] * 20)  # Assume 20km
+        orders_collection.update_one(
+            {"id": order["id"]},
+            {"$set": {
+                "transportation_cost": transportation_cost,
+                "total_amount": order["total_amount"] + transportation_cost
+            }}
+        )
+        
+        shipments_data.append(shipment)
+    
+    shipments_collection.insert_many(shipments_data)
+    print(f"✅ Created {len(shipments_data)} shipments")
+    
+    # Create a delivery route
+    print("🗺️ Creating delivery route...")
+    
+    route_data = {
+        "id": str(uuid.uuid4()),
+        "vehicle_id": vehicles_data[0]["id"],
+        "date": datetime.utcnow() + timedelta(days=1),
+        "shipments": [shipment["id"] for shipment in shipments_data if shipment["status"] == "pending"],
+        "route_status": "planned",
+        "total_distance": 45.5,
+        "estimated_duration": 120,  # minutes
+        "created_at": datetime.utcnow()
+    }
+    
+    if route_data["shipments"]:
+        delivery_routes_collection.insert_one(route_data)
+        print(f"✅ Created delivery route with {len(route_data['shipments'])} shipments")
+    else:
+        print("⚠️ No pending shipments available for route creation")
+    
     print("\n🎉 Database seeding completed successfully!")
     print("\n📊 Database Summary:")
     print(f"   Categories: {categories_collection.count_documents({})}")
