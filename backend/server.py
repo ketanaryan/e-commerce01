@@ -101,6 +101,7 @@ class Order(BaseModel):
     user_id: str
     items: List[dict]
     total_amount: float
+    transportation_cost: float = 0.0
     status: str
     created_at: datetime
     shipping_address: str
@@ -110,6 +111,80 @@ class Order(BaseModel):
 class OrderCreate(BaseModel):
     items: List[CartItem]
     shipping_address: str
+
+# Transportation Management Models
+class TransportationProvider(BaseModel):
+    id: str
+    name: str
+    service_type: str  # "standard", "express", "overnight"
+    base_cost: float
+    cost_per_km: float
+    estimated_days: int
+    service_areas: List[str]
+    active: bool = True
+
+class TransportationProviderCreate(BaseModel):
+    name: str
+    service_type: str
+    base_cost: float
+    cost_per_km: float
+    estimated_days: int
+    service_areas: List[str]
+
+class Vehicle(BaseModel):
+    id: str
+    provider_id: str
+    vehicle_number: str
+    driver_name: str
+    vehicle_type: str  # "truck", "van", "bike"
+    capacity: int
+    current_location: str
+    active: bool = True
+
+class VehicleCreate(BaseModel):
+    provider_id: str
+    vehicle_number: str
+    driver_name: str
+    vehicle_type: str
+    capacity: int
+    current_location: str
+
+class Shipment(BaseModel):
+    id: str
+    order_id: str
+    provider_id: str
+    vehicle_id: str
+    tracking_number: str
+    status: str  # "pending", "assigned", "picked_up", "in_transit", "out_for_delivery", "delivered", "returned"
+    estimated_delivery: datetime
+    actual_delivery: Optional[datetime] = None
+    delivery_notes: str = ""
+    created_at: datetime
+
+class ShipmentCreate(BaseModel):
+    order_id: str
+    provider_id: str
+
+class ShipmentUpdate(BaseModel):
+    status: str
+    delivery_notes: str = ""
+
+class DeliveryRoute(BaseModel):
+    id: str
+    vehicle_id: str
+    date: datetime
+    shipments: List[str]  # shipment IDs
+    route_status: str  # "planned", "in_progress", "completed"
+    total_distance: float
+    estimated_duration: int  # minutes
+    created_at: datetime
+
+class DeliveryRouteCreate(BaseModel):
+    vehicle_id: str
+    date: datetime
+    shipments: List[str]
+    total_distance: float
+    estimated_duration: int
 
 # Helper functions
 def hash_password(password: str) -> str:
