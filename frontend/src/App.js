@@ -1494,6 +1494,367 @@ const Admin = () => {
   );
 };
 
+// Transportation Management Component for Admin
+const TransportationManagement = () => {
+  const [activeTab, setActiveTab] = useState('providers');
+  const [providers, setProviders] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [shipments, setShipments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const { addNotification } = useNotification();
+
+  useEffect(() => {
+    if (user && user.role === 'admin') {
+      fetchData();
+    }
+  }, [user, activeTab]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      if (activeTab === 'providers') {
+        const data = await api.get('/api/admin/transportation/providers');
+        setProviders(data);
+      } else if (activeTab === 'vehicles') {
+        const data = await api.get('/api/admin/transportation/vehicles');
+        setVehicles(data);
+      } else if (activeTab === 'shipments') {
+        const data = await api.get('/api/admin/transportation/shipments');
+        setShipments(data);
+      }
+    } catch (error) {
+      addNotification('Error fetching data: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateShipmentStatus = async (shipmentId, status) => {
+    try {
+      await api.put(`/api/admin/transportation/shipments/${shipmentId}`, {
+        status,
+        delivery_notes: `Status updated to ${status}`
+      });
+      addNotification('Shipment status updated successfully', 'success');
+      fetchData();
+    } catch (error) {
+      addNotification('Error updating shipment: ' + error.message, 'error');
+    }
+  };
+
+  if (!user || user.role !== 'admin') {
+    return <div className="text-center py-8">Access denied</div>;
+  }
+
+  return (
+    <div className="bg-gray-50 min-h-screen py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">Transportation Management</h1>
+
+        {/* Tab Navigation */}
+        <div className="bg-white rounded-lg shadow-sm mb-8">
+          <nav className="flex space-x-8 px-6">
+            {[
+              { id: 'providers', label: 'Providers' },
+              { id: 'vehicles', label: 'Vehicles' },
+              { id: 'shipments', label: 'Shipments' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`py-4 px-2 border-b-2 font-medium text-sm ${
+                  activeTab === tab.id
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        ) : (
+          <>
+            {activeTab === 'providers' && (
+              <div className="bg-white rounded-lg shadow-sm">
+                <div className="p-6 border-b">
+                  <h3 className="text-lg font-medium">Transportation Providers ({providers.length})</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Provider</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service Type</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pricing</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Delivery Time</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {providers.map(provider => (
+                        <tr key={provider.id}>
+                          <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                            {provider.name}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                            {provider.service_type}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ₹{provider.base_cost} + ₹{provider.cost_per_km}/km
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {provider.estimated_days} days
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              provider.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {provider.active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'vehicles' && (
+              <div className="bg-white rounded-lg shadow-sm">
+                <div className="p-6 border-b">
+                  <h3 className="text-lg font-medium">Fleet Vehicles ({vehicles.length})</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vehicle</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Driver</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Capacity</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {vehicles.map(vehicle => (
+                        <tr key={vehicle.id}>
+                          <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                            {vehicle.vehicle_number}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {vehicle.driver_name}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                            {vehicle.vehicle_type}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {vehicle.current_location}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {vehicle.capacity} kg
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'shipments' && (
+              <div className="bg-white rounded-lg shadow-sm">
+                <div className="p-6 border-b">
+                  <h3 className="text-lg font-medium">Active Shipments ({shipments.length})</h3>
+                </div>
+                <div className="divide-y divide-gray-200">
+                  {shipments.map(shipment => (
+                    <div key={shipment.id} className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            Tracking: {shipment.tracking_number}
+                          </p>
+                          <p className="text-sm text-gray-500">Order: {shipment.order_id.slice(-8)}</p>
+                          <p className="text-sm text-gray-500">
+                            Created: {new Date(shipment.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className={`px-3 py-1 text-xs rounded-full font-medium ${
+                            shipment.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                            shipment.status === 'in_transit' ? 'bg-blue-100 text-blue-800' :
+                            shipment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {shipment.status.replace('_', ' ').toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        {['assigned', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered'].map(status => (
+                          <button
+                            key={status}
+                            onClick={() => updateShipmentStatus(shipment.id, status)}
+                            disabled={shipment.status === status}
+                            className={`px-3 py-1 text-xs rounded border ${
+                              shipment.status === status
+                                ? 'bg-blue-100 text-blue-800 border-blue-200'
+                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                            }`}
+                          >
+                            {status.replace('_', ' ')}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Order Tracking Component for Customers
+const OrderTracking = ({ orderId, onClose }) => {
+  const [trackingData, setTrackingData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const { addNotification } = useNotification();
+
+  useEffect(() => {
+    fetchTrackingData();
+  }, [orderId]);
+
+  const fetchTrackingData = async () => {
+    try {
+      const data = await api.get(`/api/orders/${orderId}/shipment`);
+      setTrackingData(data);
+    } catch (error) {
+      addNotification('Error fetching tracking data: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading tracking information...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Order Tracking</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {trackingData ? (
+            <div className="space-y-6">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-blue-900">Tracking Number</h3>
+                <p className="text-blue-800 font-mono text-lg">{trackingData.shipment.tracking_number}</p>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Delivery Provider</h4>
+                  <p className="text-gray-600">{trackingData.provider?.name}</p>
+                  <p className="text-sm text-gray-500">
+                    Service: {trackingData.provider?.service_type}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Est. Delivery: {trackingData.provider?.estimated_days} days
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Current Status</h4>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    trackingData.shipment.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                    trackingData.shipment.status === 'in_transit' ? 'bg-blue-100 text-blue-800' :
+                    trackingData.shipment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {trackingData.shipment.status.replace('_', ' ').toUpperCase()}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-4">Delivery Progress</h4>
+                <div className="space-y-3">
+                  {[
+                    { status: 'pending', label: 'Order Confirmed', icon: '📋' },
+                    { status: 'assigned', label: 'Assigned to Vehicle', icon: '🚛' },
+                    { status: 'picked_up', label: 'Package Picked Up', icon: '📦' },
+                    { status: 'in_transit', label: 'In Transit', icon: '🚚' },
+                    { status: 'out_for_delivery', label: 'Out for Delivery', icon: '🚴' },
+                    { status: 'delivered', label: 'Delivered', icon: '✅' }
+                  ].map(step => {
+                    const isCompleted = ['pending', 'assigned', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered']
+                      .indexOf(trackingData.shipment.status) >= 
+                      ['pending', 'assigned', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered']
+                      .indexOf(step.status);
+                    
+                    return (
+                      <div key={step.status} className={`flex items-center space-x-3 ${
+                        isCompleted ? 'text-green-600' : 'text-gray-400'
+                      }`}>
+                        <span className="text-lg">{step.icon}</span>
+                        <span className="font-medium">{step.label}</span>
+                        {isCompleted && <span className="text-green-500">✓</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {trackingData.vehicle && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-semibold text-gray-900 mb-2">Vehicle Information</h4>
+                  <p className="text-gray-600">Vehicle: {trackingData.vehicle.vehicle_number}</p>
+                  <p className="text-gray-600">Driver: {trackingData.vehicle.driver_name}</p>
+                  <p className="text-gray-600">Type: {trackingData.vehicle.vehicle_type}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No tracking information available for this order.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Main App Component
 const App = () => {
   const [currentPage, setCurrentPage] = useState('home');
