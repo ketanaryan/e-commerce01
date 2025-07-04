@@ -500,7 +500,7 @@ async def create_order(order_data: OrderCreate, user_id: str = Depends(get_curre
     
     # Calculate total and prepare order items
     order_items = []
-    total_amount = 0
+    subtotal = 0
     
     for item in order_data.items:
         product = products_collection.find_one({"id": item.product_id})
@@ -508,7 +508,7 @@ async def create_order(order_data: OrderCreate, user_id: str = Depends(get_curre
             raise HTTPException(status_code=404, detail=f"Product {item.product_id} not found")
         
         item_total = product["price"] * item.quantity
-        total_amount += item_total
+        subtotal += item_total
         
         order_items.append({
             "product_id": item.product_id,
@@ -518,6 +518,11 @@ async def create_order(order_data: OrderCreate, user_id: str = Depends(get_curre
             "total": item_total
         })
     
+    # Calculate transportation cost
+    transport_info = calculate_transportation_cost(order_data.shipping_address, order_items)
+    transportation_cost = transport_info["cost"]
+    total_amount = subtotal + transportation_cost
+    
     order_id = str(uuid.uuid4())
     order = {
         "id": order_id,
@@ -526,12 +531,23 @@ async def create_order(order_data: OrderCreate, user_id: str = Depends(get_curre
         "user_email": user["email"],
         "items": order_items,
         "total_amount": total_amount,
+        "transportation_cost": transportation_cost,
         "status": "pending",
         "created_at": datetime.utcnow(),
         "shipping_address": order_data.shipping_address
     }
     
     orders_collection.insert_one(order)
+    
+    # Create shipment if provider is available
+    if transport_info["provider_id"]:
+        shipment_id = create_shipment_for_order(order_id, transport_info["provider_id"])
+        # Update order status to show it's been assigned for shipping
+        orders_collection.update_one(
+            {"id": order_id},
+            {"$set": {"status": "confirmed"}}
+        )
+        order["status"] = "confirmed"
     
     # Clear cart
     cart_collection.delete_many({"user_id": user_id})
