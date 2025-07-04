@@ -1100,13 +1100,15 @@ def run_all_tests():
         cart_tests.test_add_to_cart(customer_token, test_product_id)
         success, cart_items = cart_tests.test_get_cart(customer_token)
     
+    order_id = None
     if cart_items:
         order_tests.test_create_order(customer_token, cart_items)
         order_tests.test_get_user_orders(customer_token)
         order_tests.test_get_all_orders(admin_token)
         
         if OrderTests.order_id:
-            order_tests.test_update_order_status(admin_token, OrderTests.order_id)
+            order_id = OrderTests.order_id
+            order_tests.test_update_order_status(admin_token, order_id)
     
     print("-" * 80)
     print("6. ADMIN TESTS")
@@ -1115,7 +1117,50 @@ def run_all_tests():
     admin_tests.test_get_admin_stats(admin_token)
     admin_tests.test_role_based_access(customer_token)
     
-    # Clean up - delete test product
+    print("-" * 80)
+    print("7. TRANSPORTATION MANAGEMENT TESTS")
+    print("-" * 80)
+    transportation_tests = TransportationTests()
+    
+    # Provider tests
+    transportation_tests.test_get_transportation_providers(admin_token)
+    transportation_tests.test_create_transportation_provider(admin_token)
+    transportation_tests.test_update_transportation_provider(admin_token)
+    
+    # Vehicle tests
+    transportation_tests.test_get_vehicles(admin_token)
+    transportation_tests.test_create_vehicle(admin_token)
+    transportation_tests.test_update_vehicle(admin_token)
+    
+    # Shipment tests
+    transportation_tests.test_get_shipments(admin_token)
+    if TransportationTests.tracking_number:
+        transportation_tests.test_track_shipment()
+    if order_id:
+        transportation_tests.test_get_order_shipment(customer_token, order_id)
+    if TransportationTests.shipment_id:
+        transportation_tests.test_update_shipment_status(admin_token)
+    
+    # Route tests
+    transportation_tests.test_get_delivery_routes(admin_token)
+    transportation_tests.test_create_delivery_route(admin_token)
+    if TransportationTests.route_id:
+        transportation_tests.test_update_route_status(admin_token)
+    
+    # Transportation cost calculation
+    transportation_tests.test_calculate_transportation_cost(customer_token)
+    
+    # Clean up - delete test resources
+    if TransportationTests.route_id:
+        # No delete endpoint for routes, so we don't need to clean up
+        pass
+    
+    if TransportationTests.vehicle_id:
+        transportation_tests.test_delete_vehicle(admin_token)
+    
+    if TransportationTests.provider_id:
+        transportation_tests.test_delete_transportation_provider(admin_token)
+    
     if test_product_id == ProductTests.product_id:  # Only delete if it's our test product
         product_tests.test_delete_product(admin_token)
     
