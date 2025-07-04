@@ -1019,6 +1019,30 @@ class TransportationTests:
     @staticmethod
     def test_calculate_transportation_cost(customer_token: str):
         """Test calculating transportation cost for cart"""
+        # First, add an item to the cart
+        response = requests.get(
+            f"{BACKEND_URL}/products",
+            headers=get_headers(customer_token)
+        )
+        
+        if response.status_code != 200 or not response.json():
+            print_test_result("Calculate Transportation Cost", False, "No products available")
+            return False
+        
+        product_id = response.json()[0]["id"]
+        
+        # Add product to cart
+        response = requests.post(
+            f"{BACKEND_URL}/cart",
+            headers=get_headers(customer_token),
+            json={"product_id": product_id, "quantity": 1}
+        )
+        
+        if response.status_code != 200:
+            print_test_result("Calculate Transportation Cost", False, "Could not add product to cart")
+            return False
+        
+        # Now calculate transportation cost
         shipping_address = "123 Test Street, Test City, Test Country"
         
         response = requests.post(
