@@ -1052,7 +1052,9 @@ class TransportationTests:
         
         if success:
             cost_info = response.json()
-            details = f"Calculated transportation cost: ${cost_info['cost']}, provider: {cost_info['provider_name']}"
+            cost = cost_info.get('cost', 0)
+            provider = cost_info.get('provider_name', 'Unknown Provider')
+            details = f"Calculated transportation cost: ${cost}, provider: {provider}"
         else:
             details = f"Transportation cost calculation failed: {response.status_code} - {response.text}"
         
