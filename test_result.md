@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Create a full stack ecommerce website like Amazon with customer interface (product catalog, shopping cart, user authentication, order placement, order history) and separate admin interface (product management, order management, category management, admin dashboard)"
+user_problem_statement: "i have given u a github ,repo it;s basically an e-commerce platfrom , which basically has , the order managnemt system , and distrutibiton management system , i would like u to add the transporation mangegemtn system and make sure the app is fully functiaonl and properly working"
 
 backend:
   - task: "User Authentication System"
