@@ -1043,9 +1043,8 @@ class TransportationTests:
         shipping_address = "123 Test Street, Test City, Test Country"
         
         response = requests.post(
-            f"{BACKEND_URL}/cart/transportation-cost",
-            headers=get_headers(customer_token),
-            json=shipping_address
+            f"{BACKEND_URL}/cart/transportation-cost?shipping_address={shipping_address}",
+            headers=get_headers(customer_token)
         )
         
         success = response.status_code == 200
