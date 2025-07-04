@@ -1319,7 +1319,8 @@ const Admin = () => {
             {[
               { id: 'dashboard', label: 'Dashboard' },
               { id: 'products', label: 'Products' },
-              { id: 'orders', label: 'Orders' }
+              { id: 'orders', label: 'Orders' },
+              { id: 'transportation', label: 'Transportation' }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -1342,6 +1343,8 @@ const Admin = () => {
           </div>
         ) : (
           <>
+            {activeTab === 'transportation' && <TransportationManagement />}
+            
             {activeTab === 'dashboard' && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-white rounded-lg shadow-sm p-6">
@@ -1470,11 +1473,17 @@ const Admin = () => {
                           <p className="text-sm font-medium text-gray-900">Order #{order.id.slice(-8)}</p>
                           <p className="text-sm text-gray-500">{order.user_name} - {order.user_email}</p>
                           <p className="text-sm text-gray-500">{new Date(order.created_at).toLocaleDateString('en-IN')}</p>
+                          {order.transportation_cost && (
+                            <p className="text-xs text-blue-600">
+                              Transport: ₹{order.transportation_cost.toLocaleString('en-IN')}
+                            </p>
+                          )}
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-medium text-gray-900">₹{order.total_amount.toLocaleString('en-IN')}</p>
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            order.status === 'delivered' ? 'bg-green-100 text-green-800' :
                             order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                             'bg-gray-100 text-gray-800'
                           }`}>
