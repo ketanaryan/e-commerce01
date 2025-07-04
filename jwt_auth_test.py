@@ -5,7 +5,7 @@ import jwt
 from datetime import datetime, timedelta
 
 # Get the backend URL from the frontend .env file
-BACKEND_URL = "https://182f2e7f-cfb9-40a1-8cac-19063a8a3ed2.preview.emergentagent.com/api"
+BACKEND_URL = "https://8322c09e-45ff-49e6-ae77-baef7fc3717c.preview.emergentagent.com/api"
 
 # Test credentials
 ADMIN_EMAIL = "admin@shophub.com"
