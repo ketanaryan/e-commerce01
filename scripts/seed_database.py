@@ -40,6 +40,10 @@ def seed_database():
     categories_collection.delete_many({})
     orders_collection.delete_many({})
     cart_collection.delete_many({})
+    transportation_providers_collection.delete_many({})
+    vehicles_collection.delete_many({})
+    shipments_collection.delete_many({})
+    delivery_routes_collection.delete_many({})
     
     # Create categories
     print("📂 Creating categories...")
