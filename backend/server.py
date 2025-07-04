@@ -219,6 +219,83 @@ def get_admin_user(credentials: HTTPAuthorizationCredentials = Depends(security)
         raise HTTPException(status_code=403, detail="Admin access required")
     return user_id
 
+# Transportation helper functions
+def calculate_transportation_cost(shipping_address: str, items: List[dict]) -> dict:
+    """Calculate transportation cost based on distance and weight"""
+    import random
+    
+    # Simulate distance calculation (in real scenario, use address parsing)
+    estimated_distance = random.randint(5, 50)  # 5-50 km
+    
+    # Calculate total weight (simulate based on item count)
+    total_weight = sum(item.get('quantity', 1) for item in items)
+    
+    # Get available providers
+    providers = list(transportation_providers_collection.find({"active": True}))
+    
+    if not providers:
+        return {
+            "provider_id": None,
+            "cost": 50.0,  # Default cost
+            "estimated_days": 3,
+            "provider_name": "Standard Delivery"
+        }
+    
+    # Select cheapest provider for the distance
+    best_provider = min(providers, key=lambda p: p["base_cost"] + (p["cost_per_km"] * estimated_distance))
+    
+    cost = best_provider["base_cost"] + (best_provider["cost_per_km"] * estimated_distance)
+    
+    # Add weight factor
+    if total_weight > 5:
+        cost += (total_weight - 5) * 10  # Additional cost for heavy items
+    
+    return {
+        "provider_id": best_provider["id"],
+        "cost": round(cost, 2),
+        "estimated_days": best_provider["estimated_days"],
+        "provider_name": best_provider["name"],
+        "distance": estimated_distance
+    }
+
+def generate_tracking_number() -> str:
+    """Generate a unique tracking number"""
+    import random
+    import string
+    prefix = "TRK"
+    suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    return f"{prefix}{suffix}"
+
+def create_shipment_for_order(order_id: str, provider_id: str) -> str:
+    """Create a shipment for an order"""
+    shipment_id = str(uuid.uuid4())
+    tracking_number = generate_tracking_number()
+    
+    # Find available vehicle from the provider
+    vehicle = vehicles_collection.find_one({"provider_id": provider_id, "active": True})
+    vehicle_id = vehicle["id"] if vehicle else None
+    
+    # Calculate estimated delivery (add provider's estimated days)
+    provider = transportation_providers_collection.find_one({"id": provider_id})
+    estimated_days = provider["estimated_days"] if provider else 3
+    estimated_delivery = datetime.utcnow() + timedelta(days=estimated_days)
+    
+    shipment = {
+        "id": shipment_id,
+        "order_id": order_id,
+        "provider_id": provider_id,
+        "vehicle_id": vehicle_id,
+        "tracking_number": tracking_number,
+        "status": "pending",
+        "estimated_delivery": estimated_delivery,
+        "actual_delivery": None,
+        "delivery_notes": "",
+        "created_at": datetime.utcnow()
+    }
+    
+    shipments_collection.insert_one(shipment)
+    return shipment_id
+
 # Routes
 
 # Auth routes
